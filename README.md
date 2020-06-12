@@ -16,7 +16,15 @@ This script will help you to download protected view only PDF files from Google 
 6. Save the file and enjoy!
 
 ## Tips
-By default this script will download PDF file with the highest quality available, but just in case if you need even better quality simply zoom in your browser (eg: 130% to 150%) then follow the above steps.
+* You can give a custom file name by changing the place holder "Document.pdf" to "Cool_File_Name.pdf" in the script.
+```
+let pdfDocumentName = "Document.pdf"; 
+```
+Change to this
+```
+let pdfDocumentName = "Cool_File_Name.pdf"; 
+```
+* By default this script will download PDF file with the highest quality available, but just in case if you need even better quality simply zoom in your browser (eg: 130% to 150%) then follow the above steps.
 
 ## Author
 * **Pala** - [Follow me on Instagram!](https://www.instagram.com/pala_zeltox/)  
