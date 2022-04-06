@@ -1,12 +1,19 @@
 
-    let pdfDocumentName = "Document";
-    let doc = "";
+    // Variables to be edited by user
+    let pdfDocumentName = "BytesBin_PDF";
+    let scrollSpeed = 300
+    let earlyStop = false
 
-    function generatePDF_DataFile (){
+    // Global variable
+    var imgCount = 0
+
+    function generatePDF_DataFile (){ 
+        let doc = "";
         let imgTags = document.getElementsByTagName("img");
         let checkURLString = "blob:https://drive.google.com/";
         let validImgTagCounter = 0;
-        for (i = 0; i < imgTags.length; i++) {
+        // console.log("image", imgCount)
+        for (i = imgCount; i < imgTags.length; i++) {
 
             if (imgTags[i].src.substring(0, checkURLString.length) === checkURLString){
                 validImgTagCounter = validImgTagCounter + 1;
@@ -20,14 +27,19 @@
                 //console.log("Width: " + img.naturalWidth + ", Height: " + img.naturalHeight);
                 context.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
                 let imgDataURL = canvas.toDataURL();
-               // console.log(imgDataURL);
-
-                if (doc === ""){
-                    doc = imgDataURL;
-                }else{
-                    doc = doc + "\n" + imgDataURL;
+                // console.log(imgDataURL);
+            
+                try{
+                    if (doc === ""){
+                        doc = imgDataURL;
+                    }else{
+                        doc = doc + "\n" + imgDataURL;
+                    }
+                } catch{
+                    console.log(imgCount, imgTags.length)
+                    break;
                 }
-
+                imgCount = i;
             }
         }
 
@@ -39,6 +51,12 @@
         anchorElement.download = pdfDocumentName + ".PDF_DataFile";
         document.body.appendChild(anchorElement);
         anchorElement.click();
+        
+        if(imgCount + 1 < imgTags.length){
+            console.log("Please keep the tab open. Still processing the document. Remaining images:", imgTags.length - imgCount - 1)
+            generatePDF_DataFile(); 
+        } 
+        else console.log("Script done. You can now safely close the document.");
     }
 
     let allElements = document.querySelectorAll("*");
@@ -59,9 +77,9 @@
     if (chosenElement.scrollHeight > chosenElement.clientHeight){
         console.log("Auto Scroll");
 
-        let scrollDistance = Math.round(chosenElement.clientHeight/2);
-        //console.log("scrollHeight: " + chosenElement.scrollHeight);
-        //console.log("scrollDistance: " + scrollDistance);
+        let scrollDistance = Math.round(chosenElement.clientHeight);
+        console.log("scrollHeight: " + chosenElement.scrollHeight);
+        console.log("scrollDistance: " + scrollDistance);
 
         let loopCounter = 0;
         function myLoop(remainingHeightToScroll, scrollToLocation) {
@@ -79,7 +97,8 @@
                     remainingHeightToScroll = remainingHeightToScroll - scrollDistance;
                 }
 
-                if (remainingHeightToScroll >= chosenElement.clientHeight){
+                // console.log("remainingHeightToScroll", remainingHeightToScroll)
+                if (remainingHeightToScroll>= chosenElement.clientHeight && !earlyStop){
                     myLoop(remainingHeightToScroll, scrollToLocation)
                 }else{
                     setTimeout(function() {
@@ -87,7 +106,7 @@
                     }, 1500)
                 }
 
-            }, 400)
+            }, scrollSpeed)
         }
         myLoop(0, 0);
 
