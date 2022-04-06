@@ -16,7 +16,6 @@
         for (i = imgCount; i < imgTags.length; i++) {
 
             if (imgTags[i].src.substring(0, checkURLString.length) === checkURLString){
-                imgCount = i;
                 validImgTagCounter = validImgTagCounter + 1;
                 //console.log(imgTags[i].src);
                 let img = imgTags[i];
@@ -40,6 +39,7 @@
                     console.log(imgCount, imgTags.length)
                     break;
                 }
+                imgCount = i;
             }
         }
 
