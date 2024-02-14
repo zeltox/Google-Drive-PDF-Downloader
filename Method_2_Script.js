@@ -1,120 +1,119 @@
-let jspdf = document.createElement("script");
-jspdf.onload = function () {
-    let pdfDocumentName = "Document";
-    let doc;
+// Function to dynamically load the jsPDF library and execute a callback function once it's loaded
+function loadJsPDF(callback) {
+    // Create a new script element
+    let script = document.createElement("script");
+    // Assign a callback function to be called once the script is fully loaded
+    script.onload = callback;
+    // Set the source URL of the script to the jsPDF library
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js';
+    // Append the script element to the body of the document, triggering the download and execution of the jsPDF script
+    document.body.appendChild(script);
+}
 
-    function generatePDF (){
-        let imgTags = document.getElementsByTagName("img");
-        let checkURLString = "blob:https://drive.google.com/";
-        let validImgTagCounter = 0;
-        for (i = 0; i < imgTags.length; i++) {
+// Main function to process the page content and generate a PDF
+function processAndGeneratePDF() {
+    // Initialize the document name with the desired output filename
+    const pdfDocumentName = "Document.pdf";
+    // This variable will hold our jsPDF instance once it's created
+    let doc = null;
 
-            if (imgTags[i].src.substring(0, checkURLString.length) === checkURLString){
-                validImgTagCounter = validImgTagCounter + 1;
-                //console.log(imgTags[i].src);
-                let img = imgTags[i];
+    // Function to add an individual image to the PDF document
+    function addImageToPDF(img) {
+        // Create a canvas element to draw the image on
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext("2d");
+        // Set the canvas dimensions to match the image dimensions
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        // Draw the image onto the canvas
+        ctx.drawImage(img, 0, 0);
 
-                let canvas = document.createElement('canvas');
-                let context = canvas.getContext("2d");
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                //console.log("Width: " + img.naturalWidth + ", Height: " + img.naturalHeight);
-                context.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
-                let imgDataURL = canvas.toDataURL();
-               // console.log(imgDataURL);
+        // Convert the canvas content to a data URL that jsPDF can use
+        const imgData = canvas.toDataURL();
+        // Determine the orientation of the image for the PDF layout
+        const orientation = img.naturalWidth > img.naturalHeight ? "l" : "p";
+        // Set a scale factor to adjust the image size in the PDF
+        const scaleFactor = 1.335;
+        // Calculate the page dimensions based on the image size and scale factor
+        const pageWidth = img.naturalWidth * scaleFactor;
+        const pageHeight = img.naturalHeight * scaleFactor;
 
-                //let ratio;
-                let orientation;
-                if (img.naturalWidth > img.naturalHeight){
-                    //console.log("Landscape");
-                    orientation = "l";
-                    //ratio = img.naturalWidth/img.naturalHeight
-                }else {
-                    //console.log("Portrait");
-                    orientation = "p";
-                    //ratio = img.naturalWidth/img.naturalHeight
-                }
+        // Check if the jsPDF instance exists, create it if not, or add a new page to it if it does
+        if (!doc) {
+            doc = new jsPDF({
+                orientation,
+                unit: "px",
+                format: [pageWidth, pageHeight],
+            });
+        } else {
+            doc.addPage([pageWidth, pageHeight], orientation);
+        }
 
-                let scalefactor = 1.335;
-                let pageWidth = img.naturalWidth * scalefactor;
-                let pageHeight = img.naturalHeight * scalefactor;
-               //let imagexLeft = (pageWidth - img.naturalWidth)/2;
-               //let imagexTop = (pageHeight - img.naturalHeight)/2;
-                if (validImgTagCounter === 1){
-                    doc = new jsPDF({
-                        orientation: orientation,
-                        unit: "px",
-                        format: [pageWidth, pageHeight],
-                    });
-                    doc.addImage(imgDataURL, "PNG", 0, 0, img.naturalWidth, img.naturalHeight);
-                }else{
-                    doc.addPage([pageWidth, pageHeight] , orientation);
-                    doc.addImage(imgDataURL, "PNG", 0, 0, img.naturalWidth, img.naturalHeight);
+        // Add the image to the PDF document
+        doc.addImage(imgData, "PNG", 0, 0, img.naturalWidth, img.naturalHeight);
+    }
+
+    // Function to identify valid images and process them for inclusion in the PDF
+    function processValidImages() {
+        // Retrieve all image elements from the document
+        const imgTags = document.getElementsByTagName("img");
+        // Define the URL pattern to filter images that should be included in the PDF
+        const checkURLString = "blob:https://drive.google.com/";
+        // Iterate over each image and add it to the PDF if it matches the pattern
+        Array.from(imgTags).forEach(img => {
+            if (img.src.startsWith(checkURLString)) {
+                addImageToPDF(img);
+            }
+        });
+
+        // Once all valid images are processed, save the PDF document
+        if (doc) {
+            doc.save(pdfDocumentName);
+        }
+    }
+
+    // Function to handle scrolling for elements with significant scrollable content before generating the PDF
+    function handleAutoScrollAndGeneratePDF() {
+        // Identify all elements that have scrollable content
+        const elementsWithScroll = Array.from(document.querySelectorAll("*")).filter(el => el.scrollHeight > el.clientHeight);
+        // Select the element with the maximum scroll height to focus on
+        const chosenElement = elementsWithScroll.reduce((maxEl, currentEl) => currentEl.scrollHeight > (maxEl.scrollHeight || 0) ? currentEl : maxEl, {});
+
+        // Check if the chosen element requires scrolling
+        if (chosenElement.scrollHeight > chosenElement.clientHeight) {
+            console.log("Auto Scroll");
+            // Initialize the remaining height to scroll through
+            let remainingHeight = chosenElement.scrollHeight;
+            // Calculate the distance to scroll each iteration, based on half the client height of the element
+            const scrollDistance = Math.round(chosenElement.clientHeight / 2);
+
+            // Recursive function to scroll through the element and generate the PDF afterwards
+            function scrollAndGenerate() {
+                if (remainingHeight > 0) {
+                    // Scroll the element by the calculated distance
+                    chosenElement.scrollBy(0, scrollDistance);
+                    // Subtract the scrolled distance from the remaining height
+                    remainingHeight -= scrollDistance;
+                    // Continue scrolling after a brief delay
+                    setTimeout(scrollAndGenerate, 500);
+                } else {
+                    // Once scrolling is complete, wait briefly before generating the PDF
+                    setTimeout(processValidImages, 1500);
                 }
             }
-        }
 
-        pdfDocumentName = pdfDocumentName + ".pdf";
-       doc.save(pdfDocumentName);
-    }
-
-    let allElements = document.querySelectorAll("*");
-    let chosenElement;
-    let heightOfScrollableElement = 0;
-
-    for (i = 0; i < allElements.length; i++) {
-        if ( allElements[i].scrollHeight>=allElements[i].clientHeight){
-            if (heightOfScrollableElement < allElements[i].scrollHeight){
-                //console.log(allElements[i]);
-                //console.log(allElements[i].scrollHeight);
-                heightOfScrollableElement = allElements[i].scrollHeight;
-                chosenElement = allElements[i];
-            }
+            // Start the scrolling process
+            scrollAndGenerate();
+        } else {
+            // If no scrolling is needed, wait briefly before generating the PDF directly
+            console.log("No Scroll");
+            setTimeout(processValidImages, 1500);
         }
     }
 
-    if (chosenElement.scrollHeight > chosenElement.clientHeight){
-        console.log("Auto Scroll");
+    // Initiate the process of handling scrollable content and generating the PDF
+    handleAutoScrollAndGeneratePDF();
+}
 
-        let scrollDistance = Math.round(chosenElement.clientHeight/2);
-        //console.log("scrollHeight: " + chosenElement.scrollHeight);
-        //console.log("scrollDistance: " + scrollDistance);
-
-        let loopCounter = 0;
-        function myLoop(remainingHeightToScroll, scrollToLocation) {
-            loopCounter = loopCounter+1;
-            console.log(loopCounter);
-
-            setTimeout(function() {
-                if (remainingHeightToScroll === 0){
-                    scrollToLocation = scrollDistance;
-                    chosenElement.scrollTo(0, scrollToLocation);
-                    remainingHeightToScroll = chosenElement.scrollHeight - scrollDistance;
-                }else{
-                    scrollToLocation = scrollToLocation + scrollDistance ;
-                    chosenElement.scrollTo(0, scrollToLocation);
-                    remainingHeightToScroll = remainingHeightToScroll - scrollDistance;
-                }
-
-                if (remainingHeightToScroll >= chosenElement.clientHeight){
-                    myLoop(remainingHeightToScroll, scrollToLocation)
-                }else{
-                    setTimeout(function() {
-                        generatePDF();
-                    }, 1500)
-                }
-
-            }, 500)
-        }
-        myLoop(0, 0);
-
-    }else{
-        console.log("No Scroll");
-        setTimeout(function() {
-            generatePDF();
-        }, 1500)
-    }
-
-};
-jspdf.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js';
-document.body.appendChild(jspdf);
+// Start the entire process by loading the jsPDF library and then executing the main function once it's loaded
+loadJsPDF(processAndGeneratePDF);
